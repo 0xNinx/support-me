@@ -138,7 +138,7 @@ Both SEP-24 legs are implemented in `lib/anchor.js`: **withdraw** (`runWithdraw`
 signs an on-chain payment to the anchor) and **deposit** (`runDeposit`, adds a
 trustline when the anchor parks at `pending_trust`, then lets the anchor credit
 the asset). Path-payment auto-settlement (tip in one asset → payout in another)
-remains out of scope, documented in [PRD(v3)](../PRD(v3).md).
+remains out of scope.
 
 **Auth limitation:** only SEP-10 is implemented, which covers classic (`G...`)
 and muxed (`M...`) accounts. Contract accounts (`C...`, smart wallets) would

@@ -2,28 +2,7 @@
 
 SupportMe is a creator tipping and donation platform. This enables creators on Stellar to receive donations and tips easily through embedded widgets or shareable links.
 
-## Live Demo
-
-[https://support-mee.vercel.app/](https://support-mee.vercel.app/)
-
-## Demo Video
-
-[https://www.loom.com/share/4468e89fd67745d39fb64033e6660b16](https://www.loom.com/share/4468e89fd67745d39fb64033e6660b16)
-
-## SUBMISSION FOR LEVEL 4
-
-1. **Proof of user wallet interactions**: [https://support-mee.vercel.app/activity](https://support-mee.vercel.app/activity)
-2. **User feedback summary**: [Google Sheets](https://docs.google.com/spreadsheets/d/1S8AvpybVS11cKPkS3e8UHWkQDJmofMZZPnISGFIkfWY/edit?usp=sharing)
-
-## Mobile Responsive UI
-
-<img src="frontend/public/mobile responsiveness/Screenshot_20260726_111635_Chrome.jpg" alt="Mobile responsive - Home page" width="375" />
-<img src="frontend/public/mobile responsiveness/Screenshot_20260726_111654_Chrome.jpg" alt="Mobile responsive - Dashboard" width="375" />
-<img src="frontend/public/mobile responsiveness/Screenshot_20260726_111721_Chrome.jpg" alt="Mobile responsive - Creator profile" width="375" />
-<img src="frontend/public/mobile responsiveness/Screenshot_20260726_111736_Chrome.jpg" alt="Mobile responsive - Settings" width="375" />
-<img src="frontend/public/mobile responsiveness/Screenshot_20260726_111800_Chrome.jpg" alt="Mobile responsive - Activity" width="375" />
-<img src="frontend/public/mobile responsiveness/Screenshot_20260726_111815_Chrome.jpg" alt="Mobile responsive - Wallet connected" width="375" />
-<img src="frontend/public/mobile responsiveness/Screenshot 2026-07-26 at 14.14.51.png" alt="Mobile responsive - Additional view" width="375" />
+**Live demo**: [https://support-mee.vercel.app/](https://support-mee.vercel.app/) · **Demo video**: [Loom](https://www.loom.com/share/4468e89fd67745d39fb64033e6660b16)
 
 ## Smart Contracts (Stellar Testnet)
 
@@ -65,36 +44,20 @@ errors categorized as wallet, simulation, or network failures. The
 `creator-registry` contract is never called directly by the frontend — it is
 only reachable through the `donation` contract's cross-contract calls.
 
-## Multi-Wallet Integration using StellarWallet Kits
-
-![Connect Wallet modal showing Freighter, xBull, Albedo, Rabet, and LOBSTR options](frontend/public/multi-wallet-integration.png)
-
-## What's New (v4) — Fiat Cash-Out, Multi-Asset & Rebrand
-
-See [`PRD(v3).md`](PRD(v3).md) and [`docs/v3-plan.md`](docs/v3-plan.md) for the full rationale.
-
-- **Cash Out to Your Bank (SEP-24 withdraw)**: Creators can withdraw earnings to fiat through a Stellar anchor, right from `/settings` — no CEX detour. The full interactive flow (SEP-10 sign-in → hosted KYC/bank form → on-chain transfer to the anchor → live status) lives in [`frontend/lib/anchor.js`](frontend/lib/anchor.js). Defaults to the SDF reference anchor (`testanchor.stellar.org`, asset `SRT`) on testnet — no signup, cost, or partnership required; point `NEXT_PUBLIC_ANCHOR_*` at a real NGN anchor to go live. **Note:** this is a testnet-only demo by design — SEP-24 is not live on mainnet yet, so the flow intentionally stays in demo mode until a mainnet anchor is available.
-- **Multi-Asset Tipping**: Supporters can tip in **USDC** alongside XLM. The `donate` contract already takes a generic token address, so this is resolved entirely client-side ([`frontend/lib/assets.js`](frontend/lib/assets.js)) — set `NEXT_PUBLIC_USDC_ISSUER` to enable the asset selector; without it the UI cleanly falls back to XLM-only.
-- **Neobrutalism Rebrand**: New design system — hard black borders, flat saturated fills, chunky offset shadows, no gradients — driven by reusable primitives (`card-brutal`, `btn-brutal`, `input-brutal`) in [`frontend/app/globals.css`](frontend/app/globals.css).
-
-## What's New (v5) — Recurring Donations
-
-- **Recurring Donations**: Supporters can subscribe to auto-donate to a creator on a schedule they choose (weekly, monthly, or any custom number of days), from the same donate form on `/[username]`. On-chain, the supporter grants the `donation` contract a standard SAC allowance (`approve`, sized for ~12 charges by default) and calls the new `subscribe` entrypoint to record the schedule; a backend-held "executor" keypair then calls `charge_subscription` once per interval, drawing on that allowance via `transfer_from` — no further wallet interaction needed from the supporter until they cancel. The executor never custodies donor funds (`transfer_from`'s `to` is pinned to the subscription's stored creator inside the contract), so a leaked executor key can at most accelerate/replay already-approved charges, not redirect them. Supporters manage and cancel their subscriptions from `/app/subscriptions`; cancelling revokes the remaining on-chain allowance in the same transaction. See [`contracts/donation/src/lib.rs`](contracts/donation/src/lib.rs), [`backend/src/services/subscriptionExecutor.ts`](backend/src/services/subscriptionExecutor.ts), and [`frontend/lib/contract.js`](frontend/lib/contract.js). The `donation`/`creator-registry` v2 contracts are deployed and verified end-to-end on testnet (see the v2 example transactions above), but **the live demo still runs on v1** — going live on v2 is a manual step (updating Vercel/Railway env vars, see the contract table above); see `EXECUTOR_SECRET_KEY` in [`backend/.env.example`](backend/.env.example) for the executor setup steps.
-
 ## Features
 
 - **Wallet-Based Authentication**: Sign in by proving ownership of a Stellar wallet via a signed challenge message (SEP-0043/SEP-0053) — no passwords
 - **Creator Profiles**: Public, shareable creator pages with unique usernames
 - **Multi-Wallet Integration**: Connect Freighter, xBull, Albedo, Rabet, or Lobstr via Stellar Wallets Kit
 - **On-Chain Contract Calls**: Donations are settled and recorded through a deployed Soroban contract
+- **Multi-Asset Tipping**: Supporters can tip in XLM or USDC — resolved client-side in [`frontend/lib/assets.js`](frontend/lib/assets.js); set `NEXT_PUBLIC_USDC_ISSUER` to enable the asset selector, otherwise the UI falls back to XLM-only
+- **Recurring Donations**: Supporters grant the `donation` contract a standard SAC allowance (`approve`) and call `subscribe` to record a schedule (weekly, monthly, or custom); a backend-held "executor" keypair then calls `charge_subscription` per interval via `transfer_from`. The executor never custodies funds — `transfer_from`'s `to` is pinned to the subscription's stored creator inside the contract, so a leaked executor key can at most accelerate/replay already-approved charges, not redirect them. Supporters manage/cancel subscriptions at `/app/subscriptions` (cancelling revokes the remaining allowance in the same transaction). See [`contracts/donation/src/lib.rs`](contracts/donation/src/lib.rs), [`backend/src/services/subscriptionExecutor.ts`](backend/src/services/subscriptionExecutor.ts). Requires `EXECUTOR_SECRET_KEY` (see [`backend/.env.example`](backend/.env.example)); the v2 contracts must be pointed at (see contract table above) — the live demo still runs on v1.
+- **Fiat Cash-Out (SEP-24)**: Creators can withdraw earnings through a Stellar anchor from `/settings` (SEP-10 sign-in → hosted KYC/bank form → on-chain transfer → live status), implemented in [`frontend/lib/anchor.js`](frontend/lib/anchor.js). Defaults to the SDF reference anchor (`testanchor.stellar.org`, asset `SRT`) on testnet; point `NEXT_PUBLIC_ANCHOR_*` at a real anchor to go live. This is a testnet-only demo by design — SEP-24 is not live on mainnet yet.
 - **Donation Tracking**: Backend-stored donation history with stats
 - **Creator Dashboard**: Real-time analytics and recent supporter feed, updated live over SSE
-- **Dynamic Donations**: Support any creator on the platform through their unique profile URL
-- **Recurring Donations**: Supporters can subscribe to auto-donate on a weekly/monthly/custom schedule; see "What's New (v5)" above
 - **Profile Settings**: Update profile information, display name, bio, and connect/update wallet address
-- **Zero Fees**: 100% of donations go directly to creators
-- **Instant Settlements**: Stellar blockchain ensures fast, secure transactions
-- **Error Boundaries & Loading Skeletons**: Root error boundary with retry and skeleton screens for smooth UX
+- **Zero Fees, Instant Settlement**: 100% of donations go directly to creators over the Stellar blockchain
+- **Error Boundaries & Loading Skeletons**: Root error boundary with retry and skeleton screens
 - **Test Suites**: Backend (Jest + Supertest), frontend (Vitest + React Testing Library), and Rust contract tests
 - **CI Pipeline**: GitHub Actions runs all tests and builds on every push and pull request
 - **Mobile Responsive Layout**: Optimized for all screen sizes
@@ -515,7 +478,7 @@ See `CONTRIBUTING.md` for guidelines on making changes, opening issues, and subm
 - [ ] Leaderboards (top creators, top supporters)
 - [ ] QR code generation for profiles
 - [ ] Email notifications for donations
-- [ ] Multiple currency support (USDC, USDT, etc.)
+- [ ] Additional asset support (USDT, etc.)
 - [ ] Embeddable donation widgets
 - [ ] Creator goals and progress tracking
 
