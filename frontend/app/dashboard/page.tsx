@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PartyIcon } from '@hugeicons/core-free-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -59,6 +59,9 @@ export default function DashboardPage() {
   const [creator, setCreator] = useState<Creator | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [donationPage, setDonationPage] = useState(1);
+  const [hasMoreDonations, setHasMoreDonations] = useState(false);
+  const [loadingMoreDonations, setLoadingMoreDonations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const prices = usePrices();
@@ -86,7 +89,7 @@ export default function DashboardPage() {
         setCreator(userCreator);
 
         const [resDonations, resWithdrawals] = await Promise.all([
-          fetch(`${API_URL}/api/donations?creatorUsername=${userCreator.username}`, {
+          fetch(`${API_URL}/api/donations?creatorUsername=${encodeURIComponent(userCreator.username)}&page=1&limit=20`, {
             headers: { 'Authorization': `Bearer ${token}` },
           }),
           fetch(`${API_URL}/api/withdrawals?creatorUsername=${userCreator.username}`, {
@@ -96,7 +99,12 @@ export default function DashboardPage() {
 
         if (resDonations.ok) {
           const donationsData = await resDonations.json();
-          setDonations(Array.isArray(donationsData) ? donationsData : []);
+          const items = Array.isArray(donationsData) ? donationsData : donationsData.items || [];
+          setDonations(items);
+          setDonationPage(1);
+          setHasMoreDonations(
+            Boolean(donationsData.pagination && donationsData.pagination.page < donationsData.pagination.totalPages)
+          );
         }
 
         if (resWithdrawals.ok) {
@@ -112,6 +120,27 @@ export default function DashboardPage() {
 
     fetchCreator();
   }, [user, token]);
+
+  const loadMoreDonations = async () => {
+    if (!creator || !token || loadingMoreDonations || !hasMoreDonations) return;
+    setLoadingMoreDonations(true);
+    try {
+      const nextPage = donationPage + 1;
+      const response = await fetch(
+        `${API_URL}/api/donations?creatorUsername=${encodeURIComponent(creator.username)}&page=${nextPage}&limit=20`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error('The server returned an error. Please try again.');
+      const data = await response.json();
+      setDonations((current) => [...current, ...(data.items || [])]);
+      setDonationPage(nextPage);
+      setHasMoreDonations(nextPage < data.pagination.totalPages);
+    } catch (err) {
+      notify.error('Could not load more donations', err);
+    } finally {
+      setLoadingMoreDonations(false);
+    }
+  };
 
   // Subscribe to the backend's SSE stream so newly confirmed on-chain
   // donations show up here live, without needing to refresh the page.
@@ -151,7 +180,7 @@ export default function DashboardPage() {
         return [newDonation, ...prev];
       });
 
-      toast.success('New donation received!', {
+      notify.success('New donation received!', {
         icon: <HugeiconsIcon icon={PartyIcon} size={18} strokeWidth={1.5} />,
       });
     };
@@ -391,6 +420,16 @@ export default function DashboardPage() {
                   );
                 })}
               </ul>
+            )}
+            {hasMoreDonations && (
+              <button
+                type="button"
+                onClick={loadMoreDonations}
+                disabled={loadingMoreDonations}
+                className="btn-brutal btn-brutal-white mt-4"
+              >
+                {loadingMoreDonations ? 'Loading…' : 'Load older donations'}
+              </button>
             )}
           </div>
         </div>

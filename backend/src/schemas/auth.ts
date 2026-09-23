@@ -1,11 +1,5 @@
 import { z } from "zod";
-import { StrKey } from "@stellar/stellar-sdk";
-
-const stellarAddress = z
-  .string()
-  .refine((value) => StrKey.isValidEd25519PublicKey(value), {
-    message: "Must be a valid Stellar wallet address",
-  });
+import { stellarAddress } from "./common";
 
 export const challengeSchema = z.object({
   walletAddress: stellarAddress,
