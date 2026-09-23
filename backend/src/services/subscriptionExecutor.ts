@@ -9,6 +9,10 @@ import {
 } from "@stellar/stellar-sdk";
 import prisma from "../prisma";
 import { Subscription } from "@prisma/client";
+import {
+  notifySubscriptionPaymentFailed,
+  notifySubscriptionRenewed,
+} from "./subscriptionNotifications";
 
 const RPC_URL = process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
 const NETWORK_PASSPHRASE = Networks.TESTNET;
@@ -70,7 +74,8 @@ export class SubscriptionExecutor {
     }
   }
 
-  private async tick(): Promise<void> {
+  /** Runs one pass over every due subscription. Public so tests can drive it. */
+  async tick(): Promise<void> {
     if (this.running) return;
     this.running = true;
     try {
@@ -79,7 +84,16 @@ export class SubscriptionExecutor {
       });
 
       for (const subscription of due) {
-        await this.charge(subscription);
+        // One subscription's unexpected error (e.g. a DB write failing after
+        // the on-chain charge settled) must not skip the rest of this pass.
+        try {
+          await this.charge(subscription);
+        } catch (error) {
+          console.error(
+            `SubscriptionExecutor: could not process subscription ${subscription.id}:`,
+            (error as Error).message
+          );
+        }
       }
     } catch (error) {
       console.error("SubscriptionExecutor: tick failed:", (error as Error).message);
@@ -89,67 +103,108 @@ export class SubscriptionExecutor {
   }
 
   private async charge(subscription: Subscription): Promise<void> {
-    const keypair = this.keypair!;
+    let hash: string;
     try {
-      const account = await this.server.getAccount(keypair.publicKey());
-      const contract = new Contract(DONATION_CONTRACT_ID!);
-
-      const tx = new TransactionBuilder(account, {
-        fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          contract.call(
-            "charge_subscription",
-            nativeToScVal(keypair.publicKey(), { type: "address" }),
-            nativeToScVal(BigInt(subscription.onChainId), { type: "u64" })
-          )
-        )
-        .setTimeout(60)
-        .build();
-
-      const prepared = await this.server.prepareTransaction(tx);
-      prepared.sign(keypair);
-
-      const sendResult = await this.server.sendTransaction(prepared);
-      const hash = await this.confirm(sendResult.hash);
-
-      await prisma.$transaction([
-        prisma.donation.create({
-          data: {
-            creatorId: subscription.creatorId,
-            senderAddress: subscription.supporterAddress,
-            amount: subscription.amount,
-            currency: subscription.token,
-            message: "Recurring donation",
-            transactionHash: hash,
-          },
-        }),
-        prisma.subscription.update({
-          where: { id: subscription.id },
-          data: {
-            nextChargeAt: new Date(Date.now() + subscription.intervalSecs * 1000),
-            lastChargeTxHash: hash,
-            lastChargedAt: new Date(),
-            lastError: null,
-          },
-        }),
-      ]);
+      hash = await this.submitCharge(subscription);
     } catch (error) {
-      const message = (error as Error).message;
-      console.error(
-        `SubscriptionExecutor: charge failed for subscription ${subscription.id}:`,
-        message
-      );
-      // Record the failure but leave `active`/`nextChargeAt` untouched — a
-      // transient RPC error should retry next tick, and a permanent one
-      // (e.g. revoked allowance) surfaces via `lastError` for the supporter
-      // to see rather than the executor looping forever.
-      await prisma.subscription.update({
-        where: { id: subscription.id },
-        data: { lastError: message },
-      });
+      await this.recordFailure(subscription, (error as Error).message);
+      return;
     }
+
+    const nextChargeAt = new Date(Date.now() + subscription.intervalSecs * 1000);
+    await prisma.$transaction([
+      prisma.donation.create({
+        data: {
+          creatorId: subscription.creatorId,
+          senderAddress: subscription.supporterAddress,
+          amount: subscription.amount,
+          currency: subscription.token,
+          message: "Recurring donation",
+          transactionHash: hash,
+        },
+      }),
+      prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          nextChargeAt,
+          lastChargeTxHash: hash,
+          lastChargedAt: new Date(),
+          lastError: null,
+          failureNotifiedAt: null,
+        },
+      }),
+    ]);
+
+    // The charge already settled on-chain and is recorded; a mail outage
+    // must not make it look failed (or get it retried), so just log.
+    try {
+      await notifySubscriptionRenewed(subscription, hash, nextChargeAt);
+    } catch (error) {
+      console.error(
+        `SubscriptionExecutor: renewal email failed for subscription ${subscription.id}:`,
+        (error as Error).message
+      );
+    }
+  }
+
+  private async recordFailure(subscription: Subscription, message: string): Promise<void> {
+    console.error(
+      `SubscriptionExecutor: charge failed for subscription ${subscription.id}:`,
+      message
+    );
+
+    // Email once per failure streak: the executor retries every tick, and a
+    // supporter shouldn't get a new email each minute for the same problem.
+    let notified = false;
+    if (!subscription.failureNotifiedAt) {
+      try {
+        notified = await notifySubscriptionPaymentFailed(subscription, message);
+      } catch (error) {
+        console.error(
+          `SubscriptionExecutor: payment-failure email failed for subscription ${subscription.id}:`,
+          (error as Error).message
+        );
+      }
+    }
+
+    // Record the failure but leave `active`/`nextChargeAt` untouched — a
+    // transient RPC error should retry next tick, and a permanent one
+    // (e.g. revoked allowance) surfaces via `lastError` for the supporter
+    // to see rather than the executor looping forever.
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { lastError: message, ...(notified ? { failureNotifiedAt: new Date() } : {}) },
+    });
+  }
+
+  /**
+   * Builds, signs, and submits `charge_subscription` for one subscription,
+   * resolving with the confirmed transaction hash.
+   */
+  protected async submitCharge(subscription: Subscription): Promise<string> {
+    const keypair = this.keypair!;
+    const account = await this.server.getAccount(keypair.publicKey());
+    const contract = new Contract(DONATION_CONTRACT_ID!);
+
+    const tx = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        contract.call(
+          "charge_subscription",
+          nativeToScVal(keypair.publicKey(), { type: "address" }),
+          nativeToScVal(BigInt(subscription.onChainId), { type: "u64" })
+        )
+      )
+      .setTimeout(60)
+      .build();
+
+    const prepared = await this.server.prepareTransaction(tx);
+    prepared.sign(keypair);
+
+    const sendResult = await this.server.sendTransaction(prepared);
+    return this.confirm(sendResult.hash);
   }
 
   private async confirm(hash: string): Promise<string> {

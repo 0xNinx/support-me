@@ -59,7 +59,8 @@ describe("POST /api/donations", () => {
 
     const res = await request(app).post("/api/donations").send({
       creatorUsername: "unknown",
-      senderAddress: "GSENDER",
+      senderAddress:
+        "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
       amount: 10,
     });
 
@@ -72,7 +73,8 @@ describe("POST /api/donations", () => {
     const created = {
       id: 1,
       creatorId: 7,
-      senderAddress: "GSENDER",
+      senderAddress:
+        "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
       amount: 10,
       currency: "XLM",
     };
@@ -80,7 +82,8 @@ describe("POST /api/donations", () => {
 
     const res = await request(app).post("/api/donations").send({
       creatorUsername: "bob",
-      senderAddress: "GSENDER",
+      senderAddress:
+        "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
       amount: 10,
       message: "nice work",
     });
@@ -90,7 +93,8 @@ describe("POST /api/donations", () => {
     expect(mockedPrisma.donation.create).toHaveBeenCalledWith({
       data: {
         creatorId: 7,
-        senderAddress: "GSENDER",
+        senderAddress:
+          "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
         amount: 10,
         currency: "XLM",
         message: "nice work",
