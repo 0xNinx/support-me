@@ -102,7 +102,13 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
         if (!res.ok) throw new Error('Creator not found');
         const data: Creator = await res.json();
         setCreator(data);
-        setDonations(data.donations || []);
+        const donationsRes = await fetch(
+          `${API_URL}/api/donations?creatorUsername=${encodeURIComponent(username)}&page=1&limit=20`
+        );
+        if (donationsRes.ok) {
+          const donationsData = await donationsRes.json();
+          setDonations(Array.isArray(donationsData) ? donationsData : donationsData.items || []);
+        }
       } catch {
         setNotFound(true);
       } finally {
@@ -219,7 +225,7 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
       // dashboard can split XLM vs USDC volume.
       const recordRes = await fetch(`${API_URL}/api/donations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': hash },
         body: JSON.stringify({
           creatorUsername: creator.username,
           senderAddress: userAddress,
