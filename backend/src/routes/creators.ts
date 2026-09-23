@@ -18,7 +18,6 @@ router.get(
   asyncHandler(async (req, res) => {
     const creators = await prisma.creator.findMany({
       orderBy: { createdAt: "desc" },
-      include: { donations: true },
     });
     return res.json(creators);
   })
@@ -48,7 +47,6 @@ router.get(
     const { username } = req.params;
     const creator = await prisma.creator.findUnique({
       where: { username },
-      include: { donations: true },
     });
 
     if (!creator) {
