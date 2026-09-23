@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assetCode, txHash } from "./common";
 
 export const listWithdrawalsQuerySchema = z.object({
   creatorUsername: z.string().optional(),
@@ -9,8 +10,8 @@ export const createWithdrawalSchema = z.object({
   amountIn: z.coerce.number().positive("amountIn must be a positive number"),
   amountOut: z.coerce.number().nonnegative().optional(),
   fee: z.coerce.number().nonnegative().optional(),
-  currency: z.string().default("USDC"),
-  anchorTxId: z.string().min(1, "anchorTxId is required"),
-  stellarTxId: z.string().optional(),
-  status: z.string().default("completed"),
+  currency: assetCode.default("USDC"),
+  anchorTxId: z.string().min(1, "anchorTxId is required").max(128),
+  stellarTxId: txHash.optional(),
+  status: z.string().min(1).max(32).default("completed"),
 });
