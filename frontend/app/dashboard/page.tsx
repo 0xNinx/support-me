@@ -10,6 +10,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AppNav } from '@/components/AppNav';
 import { Skeleton } from '@/components/Skeleton';
 import { TipChart } from '@/components/TipChart';
+import { ShareCard } from '@/components/ShareCard';
 import { usePrices } from '@/lib/usePrices';
 import { formatUsd } from '@/lib/prices';
 import { API_URL } from '@/lib/api';
@@ -24,6 +25,9 @@ interface Creator {
   username: string;
   displayName: string;
   walletAddress: string;
+  avatarUrl: string | null;
+  donationGoal: number | null;
+  acceptsXlm: boolean;
 }
 
 interface Donation {
@@ -64,6 +68,7 @@ export default function DashboardPage() {
   const [loadingMoreDonations, setLoadingMoreDonations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showShareCard, setShowShareCard] = useState(false);
   const prices = usePrices();
 
   useEffect(() => {
@@ -273,7 +278,16 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-background">
         <AppNav />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <h1 className="text-4xl font-extrabold text-ink tracking-tight mb-8">Dashboard</h1>
+          <div className="flex items-center justify-between mb-8 gap-4">
+            <h1 className="text-4xl font-extrabold text-ink tracking-tight">Dashboard</h1>
+            <button
+              type="button"
+              onClick={() => setShowShareCard(true)}
+              className="btn-brutal btn-brutal-primary shrink-0"
+            >
+              Share
+            </button>
+          </div>
 
           {error && (
             <div className="card-brutal bg-brand-pink p-4 mb-6 text-ink font-bold">
@@ -434,6 +448,10 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {showShareCard && (
+        <ShareCard creator={creator} donations={donations} onClose={() => setShowShareCard(false)} />
+      )}
     </ProtectedRoute>
   );
 }
