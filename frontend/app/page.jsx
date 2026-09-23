@@ -104,6 +104,7 @@ export default function Home() {
           <div className="hidden sm:flex items-center gap-6">
             <a href="#features" className="font-bold text-ink hover:text-primary transition">Features</a>
             <a href="#how-it-works" className="font-bold text-ink hover:text-primary transition">How it Works</a>
+            <Link href="/discover" className="font-bold text-ink hover:text-primary transition">Discover</Link>
             {user && (
               <Link href="/app" className="font-bold text-ink hover:text-primary transition">
                 App
