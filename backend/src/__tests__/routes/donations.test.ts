@@ -78,7 +78,8 @@ describe("POST /api/donations", () => {
   it("rejects a request without an idempotency key", async () => {
     const res = await request(app).post("/api/donations").send({
       creatorUsername: "bob",
-      senderAddress: "GSENDER",
+      senderAddress:
+        "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
       amount: 10,
     });
 
@@ -153,7 +154,12 @@ describe("POST /api/donations", () => {
     const res = await request(app)
       .post("/api/donations")
       .set("Idempotency-Key", "donation-1")
-      .send({ creatorUsername: "bob", senderAddress: "GSENDER", amount: 99 });
+      .send({
+        creatorUsername: "bob",
+        senderAddress:
+          "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
+        amount: 99,
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual(original);
