@@ -9,14 +9,20 @@ import eventsRouter from "./routes/events";
 import adminRouter from "./routes/admin";
 import activityRouter from "./routes/activity";
 import { errorHandler } from "./middleware/errorHandler";
+import { checkSorobanRpc } from "./services/sorobanHealth";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.get("/health", (req, res) => {
-  return res.json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/health", async (req, res) => {
+  const sorobanRpc = await checkSorobanRpc();
+  return res.json({
+    status: sorobanRpc.status === "ok" ? "ok" : "degraded",
+    timestamp: new Date().toISOString(),
+    dependencies: { sorobanRpc },
+  });
 });
 
 app.use("/api/auth", authRouter);

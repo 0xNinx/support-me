@@ -267,8 +267,8 @@ Frontend will run on `http://localhost:3000`
 
 ### Donations
 
-- `GET /api/donations` - List donations (query: `creatorUsername`)
-- `POST /api/donations` - Record a donation
+- `GET /api/donations` - List donations (query: `creatorUsername`, `page`, and `limit`; default limit 20, maximum 100)
+- `POST /api/donations` - Record a donation (requires an `Idempotency-Key` header; keys are retained for 24 hours)
   - Body: `{ creatorUsername, senderAddress, amount, message, transactionHash }`
 
 ### Subscriptions (recurring donations)
