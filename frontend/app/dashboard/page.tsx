@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PartyIcon } from '@hugeicons/core-free-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -130,11 +130,13 @@ export default function DashboardPage() {
         `${API_URL}/api/donations?creatorUsername=${encodeURIComponent(creator.username)}&page=${nextPage}&limit=20`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
-      if (!response.ok) return;
+      if (!response.ok) throw new Error('The server returned an error. Please try again.');
       const data = await response.json();
       setDonations((current) => [...current, ...(data.items || [])]);
       setDonationPage(nextPage);
       setHasMoreDonations(nextPage < data.pagination.totalPages);
+    } catch (err) {
+      notify.error('Could not load more donations', err);
     } finally {
       setLoadingMoreDonations(false);
     }
@@ -178,7 +180,7 @@ export default function DashboardPage() {
         return [newDonation, ...prev];
       });
 
-      toast.success('New donation received!', {
+      notify.success('New donation received!', {
         icon: <HugeiconsIcon icon={PartyIcon} size={18} strokeWidth={1.5} />,
       });
     };

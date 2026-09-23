@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, use } from 'react';
 import Image from 'next/image';
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PartyIcon } from '@hugeicons/core-free-icons';
 import { connectWallet } from '@/lib/wallet';
@@ -191,11 +191,9 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
       const address = await connectWallet();
       setUserAddress(address);
       setBalance(await loadAssetBalance(address, assetCode));
-      toast.success('Wallet connected!');
+      notify.success('Wallet connected!');
     } catch (err) {
-      toast.error('Could not connect wallet', {
-        description: (err as Error).message,
-      });
+      notify.error('Could not connect wallet', err);
     } finally {
       setConnecting(false);
     }
@@ -203,9 +201,7 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
 
   const handleSendDonation = async () => {
     if (!userAddress || !creator?.walletAddress) {
-      toast.error('Cannot send donation', {
-        description: 'Wallet not connected or creator wallet not set',
-      });
+      notify.error('Cannot send donation', 'Wallet not connected or creator wallet not set');
       return;
     }
 
@@ -249,16 +245,16 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
         </a>
       );
 
-      toast.success('Donation sent successfully!', {
+      notify.success('Donation sent successfully!', {
         icon: <HugeiconsIcon icon={PartyIcon} size={18} strokeWidth={1.5} />,
         description: txLink,
       });
 
       // The on-chain transfer already happened; a failure here only means our
       // own records (dashboard totals, goal progress) missed it, not that the
-      // donation itself failed — so it gets a separate, non-error toast.
+      // donation itself failed — so it gets a separate, non-error notify.
       if (!recordRes.ok) {
-        toast.warning("Donation sent, but we couldn't record it", {
+        notify.warning("Donation sent, but we couldn't record it", {
           description: <>Keep this for reference: {txLink}</>,
         });
       }
@@ -275,9 +271,9 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
           simulation: 'Transaction rejected',
           network: 'Network error',
         };
-        toast.error(titles[err.type] || 'Donation failed', { description: err.message });
+        notify.error(titles[err.type] || 'Donation failed', err);
       } else {
-        toast.error('Donation failed', { description: (err as Error).message });
+        notify.error('Donation failed', err);
       }
     } finally {
       setSending(false);
@@ -290,13 +286,14 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
 
     const intervalSecs = Math.round(parseFloat(intervalDays) * 86400);
     if (!intervalSecs || intervalSecs <= 0) {
-      toast.error('Enter a valid interval in days');
+      notify.error('Enter a valid interval in days');
       return;
     }
     if (intervalSecs > MAX_CHARGE_INTERVAL_DAYS * 86400) {
-      toast.error('Interval too long', {
-        description: `Stellar allows at most ${MAX_CHARGE_INTERVAL_DAYS} days between charges.`,
-      });
+      notify.error(
+        'Interval too long',
+        `Stellar allows at most ${MAX_CHARGE_INTERVAL_DAYS} days between charges.`,
+      );
       return;
     }
 
@@ -352,7 +349,7 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
         }),
       });
 
-      toast.success('Recurring donation started!', {
+      notify.success('Recurring donation started!', {
         description: `You'll be charged ${donationAmount} ${assetCode} every ${intervalDays} day(s).`,
       });
 
@@ -360,7 +357,7 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
       // fails, the subscription won't show up under Subscriptions and won't
       // be auto-charged, so the supporter needs to know to follow up.
       if (!recordRes.ok) {
-        toast.warning("We couldn't save this subscription", {
+        notify.warning("We couldn't save this subscription", {
           description:
             "It won't appear under Subscriptions or be charged automatically. Contact support with this transaction: " +
             hash.slice(0, 16) + '…',
@@ -377,9 +374,9 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
           simulation: 'Transaction rejected',
           network: 'Network error',
         };
-        toast.error(titles[err.type] || 'Could not start subscription', { description: err.message });
+        notify.error(titles[err.type] || 'Could not start subscription', err);
       } else {
-        toast.error('Could not start subscription', { description: (err as Error).message });
+        notify.error('Could not start subscription', err);
       }
     } finally {
       setSending(false);
