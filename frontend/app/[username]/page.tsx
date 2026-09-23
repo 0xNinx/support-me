@@ -9,12 +9,12 @@ export async function generateMetadata({ params }: { params: ParamsPromise }): P
   const creator = await fetchCreatorSummary(username);
 
   if (!creator) {
-    return { title: 'Creator not found — SupportMe' };
+    return { title: 'Creator not found' };
   }
 
   const name = creator.displayName || creator.username;
   const description = creator.bio?.trim() || `Support ${name} with a tip on SupportMe.`;
-  const title = `${name} (@${creator.username}) on SupportMe`;
+  const title = `Support ${name} (@${creator.username})`;
 
   // og:image / twitter:image come from the generated opengraph-image.tsx and
   // twitter-image.tsx next to this file (a 1200x630 card with the avatar).
