@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { TipJar } from '@/components/TipJar'
 import { WalletMenu } from '@/components/WalletMenu'
+import { WalletConnectError } from '@/components/WalletConnectError'
+import { categorizeWalletError } from '@/lib/walletErrors'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   FlashIcon,
@@ -76,18 +78,18 @@ const STEPS = [
 
 export default function Home() {
   const [connecting, setConnecting] = useState(false)
-  const [error, setError] = useState('')
+  const [walletError, setWalletError] = useState(null)
   const { user, loginWithWallet } = useAuth()
   const router = useRouter()
 
   const handleConnectWallet = async () => {
     setConnecting(true)
-    setError('')
+    setWalletError(null)
     try {
       const { hasProfile } = await loginWithWallet()
       router.push(hasProfile ? '/app' : '/auth/username')
     } catch (err) {
-      setError(err.message)
+      setWalletError(categorizeWalletError(err))
     } finally {
       setConnecting(false)
     }
@@ -147,10 +149,8 @@ export default function Home() {
             <p className="text-xl sm:text-2xl text-ink/80 mb-8 leading-relaxed font-medium">
               A tipping platform built on Stellar. Supporters send XLM or USDC, you cash out to your bank. No middlemen, no platform fees.
             </p>
-            {error && (
-              <div className="card-brutal bg-brand-pink p-3 mb-6 text-sm font-bold text-ink">
-                {error}
-              </div>
+            {walletError && (
+              <WalletConnectError error={walletError} onRetry={handleConnectWallet} className="mb-6" />
             )}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               {user ? (
