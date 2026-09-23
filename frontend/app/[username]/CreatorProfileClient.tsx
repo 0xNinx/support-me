@@ -8,6 +8,11 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { PartyIcon } from '@hugeicons/core-free-icons';
 import { connectWallet } from '@/lib/wallet';
 import {
+  categorizeWalletError,
+  WALLET_INSTALL_LINKS,
+  WALLET_CATEGORY,
+} from '@/lib/walletErrors';
+import {
   sendDonation,
   approveAllowance,
   subscribe,
@@ -193,7 +198,31 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
       setBalance(await loadAssetBalance(address, assetCode));
       notify.success('Wallet connected!');
     } catch (err) {
-      notify.error('Could not connect wallet', err);
+      const walletError = categorizeWalletError(err);
+      if (walletError.type === WALLET_CATEGORY.NO_WALLET) {
+        notify.error(walletError.title, walletError.message);
+        notify.info('Install a Stellar wallet to continue', {
+          description: (
+            <ul className="list-disc pl-4">
+              {WALLET_INSTALL_LINKS.map((wallet) => (
+                <li key={wallet.name}>
+                  <a
+                    href={wallet.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {wallet.name}
+                  </a>{' '}
+                  — {wallet.description}
+                </li>
+              ))}
+            </ul>
+          ),
+        });
+      } else {
+        notify.error(walletError.title, walletError.message);
+      }
     } finally {
       setConnecting(false);
     }
