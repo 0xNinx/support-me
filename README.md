@@ -1,5 +1,7 @@
 # SupportMe
 
+[![CI](https://github.com/ssupportme/support-me/actions/workflows/ci.yml/badge.svg)](https://github.com/ssupportme/support-me/actions/workflows/ci.yml)
+
 SupportMe is a creator tipping and donation platform. This enables creators on Stellar to receive donations and tips easily through embedded widgets or shareable links.
 
 **Live demo**: [https://support-mee.vercel.app/](https://support-mee.vercel.app/) · **Demo video**: [Loom](https://www.loom.com/share/4468e89fd67745d39fb64033e6660b16)
