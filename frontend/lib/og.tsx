@@ -136,6 +136,7 @@ export interface OgCreator {
   displayName: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  donationGoal: number | null;
 }
 
 export async function renderCreatorOgImage(creator: OgCreator | null) {
@@ -215,7 +216,9 @@ export async function renderCreatorOgImage(creator: OgCreator | null) {
           </div>
         </div>
         <div style={{ display: 'flex', fontSize: 30, fontWeight: 800, color: INK }}>
-          Send a tip in XLM or USDC →
+          {creator.donationGoal
+            ? `Goal: $${creator.donationGoal.toLocaleString('en-US')} · Send a tip in XLM or USDC →`
+            : 'Send a tip in XLM or USDC →'}
         </div>
       </div>
     ),

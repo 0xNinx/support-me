@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: { params: ParamsPromise }): P
       description,
       type: 'profile',
       siteName: 'SupportMe',
+      url: `/${creator.username}`,
     },
     twitter: {
       card: 'summary_large_image',
