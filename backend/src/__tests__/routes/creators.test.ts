@@ -132,13 +132,23 @@ describe("POST /api/creators/:username/create", () => {
 
   it("creates a creator profile for a new, authenticated user", async () => {
     mockedPrisma.creator.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-    const created = { id: 4, userId: 1, username: "bob", walletAddress: "GADDR" };
+    const created = {
+      id: 4,
+      userId: 1,
+      username: "bob",
+      walletAddress:
+        "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
+    };
     mockedPrisma.creator.create.mockResolvedValue(created);
 
     const res = await request(app)
       .post("/api/creators/bob/create")
       .set("Authorization", `Bearer ${token}`)
-      .send({ walletAddress: "GADDR", displayName: "Bob" });
+      .send({
+        walletAddress:
+          "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
+        displayName: "Bob",
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual(created);
