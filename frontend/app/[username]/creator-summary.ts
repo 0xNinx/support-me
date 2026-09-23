@@ -5,6 +5,7 @@ export interface CreatorSummary {
   displayName: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  donationGoal: number | null;
 }
 
 // Server-side only, purely for building link-preview metadata and images —
