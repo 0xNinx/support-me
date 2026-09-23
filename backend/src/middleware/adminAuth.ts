@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
+import { ForbiddenError } from '../errors/AppError';
 
 // Gates admin-only routes to a wallet allowlist. Runs AFTER authMiddleware, so
 // req.user is already populated from a verified JWT — here we only check that
@@ -19,11 +20,11 @@ export const adminAuth = (req: AuthRequest, res: Response, next: NextFunction) =
 
   if (admins.length === 0) {
     console.warn('ADMIN_WALLETS is not set — denying all admin access (fail-closed).');
-    return res.status(403).json({ error: 'Admin access required' });
+    return next(new ForbiddenError('Admin access required'));
   }
 
   if (!req.user || !admins.includes(req.user.walletAddress)) {
-    return res.status(403).json({ error: 'Admin access required' });
+    return next(new ForbiddenError('Admin access required'));
   }
 
   next();

@@ -3,6 +3,15 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { AppError } from "../errors/AppError";
 
+interface BodyParserError {
+  type: string;
+  status: number;
+}
+
+function isBodyParserError(err: unknown): err is BodyParserError {
+  return typeof err === "object" && err !== null && "type" in err && "status" in err;
+}
+
 /**
  * Single place where every error thrown or forwarded via `next(err)` in the
  * app ends up. Keeping this centralized means every route gets the same
@@ -18,6 +27,17 @@ export function errorHandler(
 ) {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ error: err.message, code: err.code });
+  }
+
+  // express.json() rejects an unparseable body before any route schema runs;
+  // report it in the same shape as a schema failure so clients only have one
+  // validation error format to handle.
+  if (isBodyParserError(err) && err.type === "entity.parse.failed") {
+    return res.status(400).json({
+      error: "Validation failed",
+      code: "VALIDATION_ERROR",
+      details: [{ path: "", message: "Request body is not valid JSON" }],
+    });
   }
 
   if (err instanceof ZodError) {
