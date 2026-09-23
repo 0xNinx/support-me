@@ -15,8 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Support Me",
-  description: "Support your favorite Creator",
+  title: {
+    default: "SupportMe — Get Tipped, Get Paid",
+    template: "%s — SupportMe",
+  },
+  description:
+    "A tipping platform built on Stellar. Supporters send XLM or USDC, you cash out to your bank. No middlemen, no platform fees.",
 };
 
 export default function RootLayout({

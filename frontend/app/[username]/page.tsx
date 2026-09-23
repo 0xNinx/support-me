@@ -30,12 +30,12 @@ export async function generateMetadata({ params }: { params: ParamsPromise }): P
   const creator = await fetchCreatorSummary(username);
 
   if (!creator) {
-    return { title: 'Creator not found — SupportMe' };
+    return { title: 'Creator not found' };
   }
 
   const name = creator.displayName || creator.username;
   const description = creator.bio?.trim() || `Support ${name} with a tip on SupportMe.`;
-  const title = `${name} (@${creator.username}) on SupportMe`;
+  const title = `Support ${name} (@${creator.username})`;
 
   return {
     title,
