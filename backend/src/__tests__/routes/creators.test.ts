@@ -6,6 +6,7 @@ jest.mock("../../prisma", () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      count: jest.fn(),
     },
   },
 }));
@@ -21,18 +22,46 @@ const mockedPrisma = prisma as unknown as {
     findUnique: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
+    count: jest.Mock;
   };
 };
 
 describe("GET /api/creators", () => {
-  it("lists all creators with their donations", async () => {
-    const creators = [{ id: 1, username: "bob", donations: [] }];
+  it("lists creators, newest first by default", async () => {
+    const creators = [{ id: 1, username: "bob", _count: { donations: 0 } }];
     mockedPrisma.creator.findMany.mockResolvedValue(creators);
+    mockedPrisma.creator.count.mockResolvedValue(1);
 
     const res = await request(app).get("/api/creators");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(creators);
+    expect(res.body).toEqual({
+      items: creators,
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
+    expect(mockedPrisma.creator.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: "desc" }, where: undefined })
+    );
+  });
+
+  it("searches by username/displayName and sorts by donation count", async () => {
+    mockedPrisma.creator.findMany.mockResolvedValue([]);
+    mockedPrisma.creator.count.mockResolvedValue(0);
+
+    const res = await request(app).get("/api/creators?q=jane&sort=most-supported");
+
+    expect(res.status).toBe(200);
+    expect(mockedPrisma.creator.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { donations: { _count: "desc" } },
+        where: {
+          OR: [
+            { username: { contains: "jane", mode: "insensitive" } },
+            { displayName: { contains: "jane", mode: "insensitive" } },
+          ],
+        },
+      })
+    );
   });
 });
 
@@ -132,13 +161,23 @@ describe("POST /api/creators/:username/create", () => {
 
   it("creates a creator profile for a new, authenticated user", async () => {
     mockedPrisma.creator.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-    const created = { id: 4, userId: 1, username: "bob", walletAddress: "GADDR" };
+    const created = {
+      id: 4,
+      userId: 1,
+      username: "bob",
+      walletAddress:
+        "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
+    };
     mockedPrisma.creator.create.mockResolvedValue(created);
 
     const res = await request(app)
       .post("/api/creators/bob/create")
       .set("Authorization", `Bearer ${token}`)
-      .send({ walletAddress: "GADDR", displayName: "Bob" });
+      .send({
+        walletAddress:
+          "GA7D5LDGFABXNYEO6LZVMTWK5JWEPTODCLYZ7TG4XDZRKKXP6OS5K5JW",
+        displayName: "Bob",
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual(created);

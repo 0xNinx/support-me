@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from "../middleware/auth";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { validate } from "../middleware/validate";
 import { createSubscriptionSchema, listSubscriptionsQuerySchema } from "../schemas/subscriptions";
+import { idParamSchema } from "../schemas/common";
 import { NotFoundError, UnauthorizedError } from "../errors/AppError";
 
 const router = Router();
@@ -83,12 +84,13 @@ router.post(
 router.post(
   "/:id/cancel",
   authMiddleware as any,
+  validate({ params: idParamSchema }),
   asyncHandler(async (req: AuthRequest, res) => {
     if (!req.user) {
       throw new UnauthorizedError("User not authenticated");
     }
 
-    const id = Number(req.params.id);
+    const { id } = req.params as unknown as { id: number };
     const subscription = await prisma.subscription.findUnique({ where: { id } });
     if (!subscription) {
       throw new NotFoundError("Subscription not found");
