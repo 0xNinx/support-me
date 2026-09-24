@@ -9,6 +9,7 @@ import { PartyIcon } from '@hugeicons/core-free-icons';
 import { connectWallet } from '@/lib/wallet';
 import {
   sendDonation,
+  MAX_MEMO_LENGTH,
   approveAllowance,
   subscribe,
   DonationError,
@@ -593,12 +594,12 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
                   id="donation-message"
                   value={donationMessage}
                   onChange={(e) => setDonationMessage(e.target.value)}
-                  maxLength={140}
+                    maxLength={MAX_MEMO_LENGTH}
                   placeholder="Thanks for your work!"
                   className="input-brutal text-sm"
                   rows={3}
                 />
-                <p className="text-xs text-muted mt-1 font-medium">{donationMessage.length}/140</p>
+                  <p className="text-xs text-muted mt-1 font-medium">{donationMessage.length}/{MAX_MEMO_LENGTH}</p>
               </div>
 
               <div className="flex items-center justify-between gap-3">

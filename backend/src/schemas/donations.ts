@@ -9,6 +9,6 @@ export const createDonationSchema = z.object({
   senderAddress: z.string().min(1, "senderAddress is required"),
   amount: z.coerce.number().positive("amount must be a positive number"),
   currency: z.string().default("XLM"),
-  message: z.string().max(500).optional(),
+  message: z.string().max(140).optional(),
   transactionHash: z.string().optional(),
 });
