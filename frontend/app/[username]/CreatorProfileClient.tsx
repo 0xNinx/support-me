@@ -277,7 +277,19 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
 
       notify.success('Donation sent successfully!', {
         icon: <HugeiconsIcon icon={PartyIcon} size={18} strokeWidth={1.5} />,
-        description: txLink,
+        description: (
+          <div className="flex flex-col gap-2">
+            {txLink}
+            <a
+              href={`/receipt/${hash}?amount=${encodeURIComponent(donationAmount)}&asset=${encodeURIComponent(assetCode)}&creatorName=${encodeURIComponent(creator.displayName || creator.username)}&creatorUsername=${encodeURIComponent(creator.username)}&message=${encodeURIComponent(donationMessage)}&timestamp=${encodeURIComponent(new Date().toISOString())}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-sm"
+            >
+              View Receipt →
+            </a>
+          </div>
+        ),
       });
 
       // The on-chain transfer already happened; a failure here only means our
