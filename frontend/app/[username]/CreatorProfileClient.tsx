@@ -124,13 +124,41 @@ export default function CreatorProfileClient({ params }: { params: Promise<{ use
     fetchCreator();
   }, [username]);
 
-  // Default the selected asset to the first one the creator accepts, once the
-  // profile loads.
+  // Load saved asset preference from localStorage on mount
   useEffect(() => {
-    if (assetCodes.length > 0 && !assetCodes.includes(assetCode)) {
-      setAssetCode(assetCodes[0]);
+    if (typeof window === 'undefined') return;
+    
+    const savedAsset = localStorage.getItem('supportme-preferred-asset');
+    if (savedAsset) {
+      setAssetCode(savedAsset);
+    }
+  }, []);
+
+  // Default the selected asset to the first one the creator accepts, once the
+  // profile loads. If a saved preference exists and is valid for this creator,
+  // use it instead.
+  useEffect(() => {
+    if (assetCodes.length > 0) {
+      // Check if the current assetCode is valid for this creator
+      if (!assetCodes.includes(assetCode)) {
+        // Try to load saved preference if it's valid for this creator
+        const savedAsset = typeof window !== 'undefined' ? localStorage.getItem('supportme-preferred-asset') : null;
+        if (savedAsset && assetCodes.includes(savedAsset)) {
+          setAssetCode(savedAsset);
+        } else {
+          // Fall back to first available asset
+          setAssetCode(assetCodes[0]);
+        }
+      }
     }
   }, [assetCodes, assetCode]);
+
+  // Save asset preference to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined' || assetCode === 'XLM') return;
+    
+    localStorage.setItem('supportme-preferred-asset', assetCode);
+  }, [assetCode]);
 
   // Subscribe to the backend's SSE stream so a live donation bumps the goal
   // progress without a refresh.
